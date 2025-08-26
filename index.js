@@ -6,10 +6,16 @@ const client = new Client({
 });
 
 let state = {};
-
 client.on('qr', qr => {
+    // Konsolda ASCII QR
     qrcode.generate(qr, { small: true });
     console.log('📲 QR kod yukarıda, WhatsApp ile okut.');
+
+    // Alternatif: QR'ı link olarak da yazdır
+    console.log("🔗 QR kodu buradan açabilirsin:");
+    console.log(`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${qr}`);
+});
+
 });
 
 client.on('ready', () => {
