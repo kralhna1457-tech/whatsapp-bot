@@ -1,54 +1,49 @@
-const { Client, LocalAuth } = require('whatsapp-web.js');
-const qrcode = require('qrcode-terminal');
+const { Client, LocalAuth } = require("whatsapp-web.js");
+const qrcode = require("qrcode-terminal");
 
+// WhatsApp Client
 const client = new Client({
-    authStrategy: new LocalAuth()
+    authStrategy: new LocalAuth(),
+    puppeteer: {
+        args: ["--no-sandbox", "--disable-setuid-sandbox"],
+    },
 });
 
-let state = {};
-client.on('qr', qr => {
+// QR Olayı
+client.on("qr", (qr) => {
     // Konsolda ASCII QR
     qrcode.generate(qr, { small: true });
-    console.log('📲 QR kod yukarıda, WhatsApp ile okut.');
+    console.log("📲 QR kod yukarıda (ASCII).");
 
-    // Alternatif: QR'ı link olarak da yazdır
-    console.log("🔗 QR kodu buradan açabilirsin:");
-    console.log(`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${qr}`);
+    // ✅ QR kodu link olarak göster
+    console.log("🔗 QR kodunu tarayıcıda aç:");
+    console.log(
+        `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(
+            qr
+        )}`
+    );
 });
 
+// Başarılı giriş
+client.on("ready", () => {
+    console.log("✅ Bot başarıyla bağlandı!");
 });
 
-client.on('ready', () => {
-    console.log('✅ Bot çalışıyor!');
-});
+// Mesajlara cevap
+client.on("message", async (message) => {
+    console.log(`💬 ${message.from}: ${message.body}`);
 
-client.on('message', async msg => {
-    const chatId = msg.from;
-
-    if (!state[chatId]) {
-        await client.sendMessage(chatId, "Hello 👋 How can I help you?\nMerhaba 👋 Size nasıl yardımcı olabilirim?\n\n1️⃣ Hotel / Otel\n2️⃣ House / Ev");
-        state[chatId] = { step: 1 };
-        return;
-    }
-
-    if (state[chatId].step === 1) {
-        if (msg.body.toLowerCase().includes('hotel') || msg.body.includes('otel')) {
-            state[chatId] = { step: 2, choice: 'Hotel' };
-            await client.sendMessage(chatId, "Please provide the time ⏰\nLütfen saat bilgisini giriniz ⏰");
-        } else if (msg.body.toLowerCase().includes('house') || msg.body.includes('ev')) {
-            state[chatId] = { step: 2, choice: 'House' };
-            await client.sendMessage(chatId, "Please provide the time ⏰\nLütfen saat bilgisini giriniz ⏰");
-        } else {
-            await client.sendMessage(chatId, "Please type 'Hotel / Otel' or 'House / Ev'");
-        }
-        return;
-    }
-
-    if (state[chatId].step === 2) {
-        state[chatId].time = msg.body;
-        await client.sendMessage(chatId, "✅ Thank you! I’ll get back to you shortly.\n✅ Teşekkürler! Kısa süre içinde dönüş yapacağım.");
-        state[chatId] = null; // sıfırla
+    // Basit akış
+    if (message.body.toLowerCase() === "merhaba") {
+        await message.reply("Hello! 👋 How can I help you today?\n1️⃣ Hotel\n2️⃣ House");
+    } else if (message.body === "1" || message.body.toLowerCase() === "otel") {
+        await message.reply("🛎️ Please provide the time for hotel booking:");
+    } else if (message.body === "2" || message.body.toLowerCase() === "ev") {
+        await message.reply("🏠 Please provide the time for house booking:");
+    } else if (message.body.match(/\d{1,2}:\d{2}/)) {
+        await message.reply("✅ Got it! I will get back to you shortly ⏳");
     }
 });
 
+// Başlat
 client.initialize();
